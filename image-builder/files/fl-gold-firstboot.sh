@@ -1,0 +1,154 @@
+#!/bin/bash
+# Fedora Lane - firstboot hardening for Image Builder gold image
+# Baked into the image via blueprint [[customizations.files]]
+set -uo pipefail
+
+MARKER=/var/lib/fl-gold-firstboot-done
+if [[ -f "$MARKER" ]]; then
+  exit 0
+fi
+
+# SELinux enforcing
+setenforce 1 || true
+sed -i 's/^SELINUX=.*/SELINUX=enforcing/' /etc/selinux/config || true
+
+# SELinux labels for Expansion Pack non-standard ports
+if command -v semanage >/dev/null 2>&1; then
+  semanage port -a -t ssh_port_t -p tcp 2222 2>/dev/null || semanage port -m -t ssh_port_t -p tcp 2222 || true
+  semanage port -a -t http_port_t -p tcp 35443 2>/dev/null || semanage port -m -t http_port_t -p tcp 35443 || true
+fi
+
+# /tmp and /var/tmp noexec (blueprint minsize cannot set mount options)
+if findmnt -n /tmp >/dev/null 2>&1; then
+  mount -o remount,noexec,nodev,nosuid /tmp || true
+  if grep -qE '[[:space:]]/tmp[[:space:]]' /etc/fstab; then
+    awk '
+      $2=="/tmp" && $4 !~ /noexec/ { $4="noexec,nodev,nosuid,"$4 }
+      { print }
+    ' /etc/fstab > /etc/fstab.fl && mv /etc/fstab.fl /etc/fstab
+  fi
+fi
+if findmnt -n /var/tmp >/dev/null 2>&1; then
+  mount -o remount,noexec,nodev,nosuid /var/tmp || true
+fi
+
+# Firewall: only 2222 + 35443
+systemctl enable --now firewalld || true
+firewall-cmd --permanent --remove-service=ssh || true
+firewall-cmd --permanent --add-port=2222/tcp || true
+firewall-cmd --permanent --add-port=35443/tcp || true
+firewall-cmd --reload || true
+systemctl enable --now sshd || true
+
+# httpd in container on 35443 + Fedora Lane dummy boutique app
+# App source of truth in Git: demo-app/html (refresh with deploy-to-vm.sh)
+mkdir -p /opt/fl/httpd-gold/html/api
+chmod 0755 /opt /opt/fl /opt/fl/httpd-gold /opt/fl/httpd-gold/html /opt/fl/httpd-gold/html/api 2>/dev/null || true
+umask 022
+tee /opt/fl/httpd-gold/html/index.html >/dev/null <<'HTML'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fedora Lane — Boutique Demo</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">Fedora Lane</div>
+    <nav>
+      <a href="#catalog">Catalog</a>
+      <a href="#about">About</a>
+      <a href="health.json">Health</a>
+    </nav>
+  </header>
+  <main>
+    <section class="hero">
+      <h1>Boutique e-commerce demo</h1>
+      <p>Dummy storefront on the RHEL <strong>gold image</strong> — httpd container on port <strong>35443</strong>.</p>
+      <p class="meta" id="host-meta">Loading host info…</p>
+    </section>
+    <section id="catalog" class="catalog">
+      <h2>Featured styles</h2>
+      <div id="products" class="grid" aria-live="polite">Loading catalog…</div>
+    </section>
+    <section id="about" class="about">
+      <h2>How this is hosted</h2>
+      <ul>
+        <li>Gold VM baseline: Expansion Pack RHEL (SSH 2222, SELinux, fladmins)</li>
+        <li>Runtime: Podman httpd container on <code>35443</code></li>
+        <li>App files: <code>/opt/fl/httpd-gold/html</code> — update without a new AMI</li>
+      </ul>
+    </section>
+  </main>
+  <footer>
+    <span>Fedora Lane PoC · Server/Cloud OS Expansion Pack</span>
+    <span id="build-stamp">demo-app</span>
+  </footer>
+  <script src="app.js"></script>
+</body>
+</html>
+HTML
+tee /opt/fl/httpd-gold/html/styles.css >/dev/null <<'CSS'
+:root{--ink:#1a1a1a;--paper:#f7f4ef;--accent:#8b1e1e;--line:#d9d2c5;--muted:#5c574e}
+*{box-sizing:border-box}body{margin:0;font-family:Georgia,serif;color:var(--ink);background:radial-gradient(ellipse at top,#fff 0%,var(--paper) 55%,#ebe4d8 100%);min-height:100vh}
+.top{display:flex;justify-content:space-between;align-items:center;padding:1.25rem 2rem;border-bottom:1px solid var(--line);background:rgba(247,244,239,.92);position:sticky;top:0}
+.brand{font-size:1.35rem;font-weight:700}nav a{color:var(--muted);text-decoration:none;margin-left:1.25rem}nav a:hover{color:var(--accent)}
+main{max-width:960px;margin:0 auto;padding:2rem 1.5rem 4rem}
+.hero h1{font-size:clamp(1.8rem,4vw,2.6rem);margin:0 0 .75rem}.hero p{color:var(--muted);max-width:38rem;line-height:1.5}
+.meta{display:inline-block;margin-top:.5rem;padding:.35rem .7rem;border:1px solid var(--line);background:#fff;font-family:monospace;font-size:.8rem}
+.catalog,.about{margin-top:2.5rem}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem}
+.card{background:#fff;border:1px solid var(--line);padding:1.1rem;min-height:9rem;display:flex;flex-direction:column;justify-content:space-between}
+.card h3{margin:0 0 .4rem}.card p{margin:0;color:var(--muted);font-size:.92rem}.price{margin-top:.9rem;font-family:monospace;color:var(--accent);font-weight:700}
+.about{padding:1.25rem 1.4rem;border-top:1px solid var(--line)}.about ul{color:var(--muted);line-height:1.6}
+.about code{font-family:monospace;font-size:.85em;background:#fff;border:1px solid var(--line);padding:.05rem .3rem}
+footer{display:flex;justify-content:space-between;gap:1rem;padding:1rem 2rem 1.5rem;border-top:1px solid var(--line);color:var(--muted);font-size:.85rem}
+CSS
+tee /opt/fl/httpd-gold/html/app.js >/dev/null <<'JS'
+(function(){var meta=document.getElementById("host-meta");var stamp=document.getElementById("build-stamp");var productsEl=document.getElementById("products");if(meta){meta.textContent="Host: "+location.hostname+" · Port: "+(location.port||"80")+" · Path: gold httpd volume"}if(stamp){stamp.textContent="demo-app · "+new Date().toISOString().slice(0,10)}fetch("api/catalog.json",{cache:"no-store"}).then(function(r){return r.json()}).then(function(data){var items=(data&&data.items)||[];if(!items.length){productsEl.textContent="Catalog empty.";return}productsEl.innerHTML="";items.forEach(function(item){var card=document.createElement("article");card.className="card";card.innerHTML="<div><h3></h3><p></p></div><div class=\"price\"></div>";card.querySelector("h3").textContent=item.name;card.querySelector("p").textContent=item.blurb;card.querySelector(".price").textContent=item.price;productsEl.appendChild(card)})}).catch(function(){productsEl.textContent="Could not load api/catalog.json"})})();
+JS
+tee /opt/fl/httpd-gold/html/health.json >/dev/null <<'JSON'
+{"status":"ok","app":"fedora-lane-demo-boutique","tier":"web","runtime":"podman-httpd","port":35443,"note":"Dummy PoC app — no real orders or payments"}
+JSON
+tee /opt/fl/httpd-gold/html/api/catalog.json >/dev/null <<'JSON'
+{"store":"Fedora Lane Boutique","currency":"USD","items":[{"id":"fl-001","name":"Cascade Wool Coat","blurb":"Structured outerwear for city boutiques.","price":"$248"},{"id":"fl-002","name":"Lane Silk Scarf","blurb":"Limited drop — demo SKU for PoC catalog API.","price":"$64"},{"id":"fl-003","name":"Atelier Sneaker","blurb":"Everyday style sample for the gold-image web tier.","price":"$132"},{"id":"fl-004","name":"Evening Clutch","blurb":"Accessory line placeholder — not a real order system.","price":"$89"}]}
+JSON
+chmod -R a+rX /opt/fl/httpd-gold/html
+
+tee /opt/fl/httpd-gold/Containerfile >/dev/null <<'CF'
+FROM registry.access.redhat.com/ubi9/httpd-24
+COPY html/ /var/www/html/
+CF
+
+# Prefer registry image directly if local build is slow/unavailable
+if ! podman image exists localhost/fl-httpd-gold:latest; then
+  if (cd /opt/fl/httpd-gold && podman build -t localhost/fl-httpd-gold:latest .); then
+    :
+  else
+    podman pull registry.access.redhat.com/ubi9/httpd-24 || true
+    podman tag registry.access.redhat.com/ubi9/httpd-24 localhost/fl-httpd-gold:latest || true
+  fi
+fi
+
+podman rm -f fl-httpd 2>/dev/null || true
+podman run -d --name fl-httpd --restart=always \
+  -p 35443:8080 \
+  -v /opt/fl/httpd-gold/html:/var/www/html:Z \
+  localhost/fl-httpd-gold:latest || \
+podman run -d --name fl-httpd --restart=always \
+  -p 35443:8080 \
+  -v /opt/fl/httpd-gold/html:/var/www/html:Z \
+  registry.access.redhat.com/ubi9/httpd-24 || true
+
+cd /tmp
+podman generate systemd --new --name fl-httpd --files --restart-policy=always 2>/dev/null || true
+if [[ -f /tmp/container-fl-httpd.service ]]; then
+  install -m 0644 /tmp/container-fl-httpd.service /etc/systemd/system/fl-httpd.service
+  systemctl daemon-reload
+  systemctl enable --now fl-httpd.service || true
+fi
+
+touch "$MARKER"
+echo "Fedora Lane gold firstboot complete"
+exit 0

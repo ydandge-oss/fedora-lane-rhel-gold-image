@@ -1,0 +1,27 @@
+# Secrets — never commit
+.env
+.env.*
+env.local
+**/env.local
+*.pem
+*.key
+id_rsa*
+*.bak
+
+# Local outputs
+aws/output/
+azure/output/
+**/*.raw
+**/*.vhd
+**/*.qcow2
+
+# Python / OS / IDE
+.venv/
+.venv-pptx/
+__pycache__/
+.DS_Store
+.idea/
+.vscode/
+*.log
+.tools/
+.clean-stage/

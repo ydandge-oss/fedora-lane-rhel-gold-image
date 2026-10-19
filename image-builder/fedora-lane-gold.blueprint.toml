@@ -1,0 +1,164 @@
+# Fedora Lane — Server/Cloud OS Expansion Pack
+# RHEL Image Builder blueprint (local compose on a RHEL VM)
+# Doc: https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/image-builder-description
+#
+# Generate compose-ready fl-rhel-gold.toml:
+#   ./scripts/generate-blueprint.sh
+#
+# BEFORE COMPOSE: replace SSH public keys; optional password hashes for sudo demo.
+
+name = "fl-rhel-gold"
+description = "Fedora Lane e-commerce web gold image — Expansion Pack (RHEL Image Builder)"
+version = "0.1.0"
+modules = []
+groups = []
+distro = "rhel-10.1"
+
+[customizations]
+hostname = "fl-rhel-gold"
+partitioning_mode = "lvm"
+
+[[packages]]
+name = "podman"
+
+[[packages]]
+name = "container-tools"
+
+[[packages]]
+name = "firewalld"
+
+[[packages]]
+name = "policycoreutils-python-utils"
+
+[[packages]]
+name = "setools-console"
+
+[[packages]]
+name = "sudo"
+
+[[packages]]
+name = "chrony"
+
+[[packages]]
+name = "curl"
+
+[[packages]]
+name = "jq"
+
+[[packages]]
+name = "vim-enhanced"
+
+[[customizations.filesystem]]
+mountpoint = "/"
+minsize = "12 GiB"
+
+[[customizations.filesystem]]
+mountpoint = "/var/log"
+minsize = "4 GiB"
+
+[[customizations.filesystem]]
+mountpoint = "/home"
+minsize = "4 GiB"
+
+[[customizations.filesystem]]
+mountpoint = "/tmp"
+minsize = "2 GiB"
+
+[[customizations.filesystem]]
+mountpoint = "/var/tmp"
+minsize = "2 GiB"
+
+[[customizations.group]]
+name = "fladmins"
+
+[[customizations.user]]
+name = "fladmin1"
+description = "Fedora Lane administrator 1"
+groups = ["fladmins", "wheel"]
+key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDXQJrl1hHebreb+4XQppIvxg9wnZ75IsTvoi+UAssUBVsvTupV9PCmVx2bLhQxHgPfeBqndtc0DXNEnTNapDxBtxlHfiTa526qzCuNtNf5hAJCs2ZOjgpy6zpiY9JKgggHQqJkapGoAB0jZ5T1SeCLupAA9XTfz7UvcE2TgHvFOHTvVhE8Y9tZ9Sq6/Ksu3rZ4rforWBDO5TJ98Ft9zmyYKq3xwumRXr4m6DzrYr3/semkA1P88SNPa6Unt47mHr7a9HRF4RMtSJnVmlv7kAEvmKdAb4a8++8P4oDVDOQaEZA980tbuZmIpoaZBBVbttlWVCNzwWHPRyKY3I1H9cAn4keD8pzE6VfRMhphKUkM0WMSsPW4JaAP87ZpFije6skfo6q2KCHPWvTu/m5FpEFwuhA0Fs+7dNIcmP2YTA3GD/GMCkeSwehaA0vIzx7T/j9wgAj6LHD9iQ0Z1Oqbsd1Er/5yhulPI0nYI+2JYr496okbqOnOFYbKFOa4Wvkpad+SsPNB/R1Z76AD5UXV/XUIQleb0zpFMffhVuBQC09VAk8re/p+7QVy3DES9bk8xiA6PY+afDIHSpBsJQoDDoQBwQ9UDXnjhg4f1XSAt0TO+neDmMjypFZiCC2g9v0v7LeJY+lMoEF2FySPUGPbu7zrBmFkLApT4DKN7WuZP2XXYw== ydandge@redhat.com"
+# Optional password hash for sudo demos (openssl passwd -6 'YourPassword'):
+# password = "$6$rounds=5000$salt$hash"
+
+[[customizations.user]]
+name = "fladmin2"
+description = "Fedora Lane administrator 2"
+groups = ["fladmins", "wheel"]
+key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDXQJrl1hHebreb+4XQppIvxg9wnZ75IsTvoi+UAssUBVsvTupV9PCmVx2bLhQxHgPfeBqndtc0DXNEnTNapDxBtxlHfiTa526qzCuNtNf5hAJCs2ZOjgpy6zpiY9JKgggHQqJkapGoAB0jZ5T1SeCLupAA9XTfz7UvcE2TgHvFOHTvVhE8Y9tZ9Sq6/Ksu3rZ4rforWBDO5TJ98Ft9zmyYKq3xwumRXr4m6DzrYr3/semkA1P88SNPa6Unt47mHr7a9HRF4RMtSJnVmlv7kAEvmKdAb4a8++8P4oDVDOQaEZA980tbuZmIpoaZBBVbttlWVCNzwWHPRyKY3I1H9cAn4keD8pzE6VfRMhphKUkM0WMSsPW4JaAP87ZpFije6skfo6q2KCHPWvTu/m5FpEFwuhA0Fs+7dNIcmP2YTA3GD/GMCkeSwehaA0vIzx7T/j9wgAj6LHD9iQ0Z1Oqbsd1Er/5yhulPI0nYI+2JYr496okbqOnOFYbKFOa4Wvkpad+SsPNB/R1Z76AD5UXV/XUIQleb0zpFMffhVuBQC09VAk8re/p+7QVy3DES9bk8xiA6PY+afDIHSpBsJQoDDoQBwQ9UDXnjhg4f1XSAt0TO+neDmMjypFZiCC2g9v0v7LeJY+lMoEF2FySPUGPbu7zrBmFkLApT4DKN7WuZP2XXYw== ydandge@redhat.com"
+
+[customizations.firewall]
+ports = ["2222:tcp", "35443:tcp"]
+
+[customizations.firewall.services]
+disabled = ["ssh"]
+
+[customizations.services]
+enabled = ["sshd", "firewalld", "chronyd", "fl-gold-firstboot.service"]
+
+# Do NOT mkdir paths that already exist on RHEL (sshd_config.d, sudoers.d,
+# systemd/system) — osbuild mkdir fails with FileExistsError.
+
+[[customizations.directories]]
+path = "/etc/fl-gold"
+mode = "0755"
+
+[[customizations.directories]]
+path = "/etc/fl-gold/bin"
+mode = "0755"
+
+[[customizations.files]]
+path = "/etc/ssh/sshd_config.d/00-fl-gold.conf"
+mode = "0644"
+data = """Port 2222
+PermitRootLogin no
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+ChallengeResponseAuthentication no
+PubkeyAuthentication yes
+X11Forwarding no
+AllowGroups fladmins
+"""
+
+[[customizations.files]]
+path = "/etc/sudoers.d/fladmins"
+mode = "0440"
+data = """# Fedora Lane — sudo always requires password
+Defaults:%fladmins timestamp_timeout=0
+%fladmins ALL=(ALL) ALL
+"""
+
+[[customizations.files]]
+path = "/etc/sudoers.d/wheel-password"
+mode = "0440"
+data = """%wheel ALL=(ALL) ALL
+"""
+
+[[customizations.files]]
+path = "/etc/fl-gold/MARKER"
+mode = "0644"
+data = """Fedora Lane RHEL gold image (Image Builder)
+SSH:2222 | httpd container:35443 | SELinux:enforcing
+Built with local RHEL Image Builder — not hosted console.redhat.com
+"""
+
+[[customizations.files]]
+path = "/etc/systemd/system/fl-gold-firstboot.service"
+mode = "0644"
+data = """[Unit]
+Description=Fedora Lane gold image firstboot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/etc/fl-gold/bin/fl-gold-firstboot.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+"""
+
+[[customizations.files]]
+path = "/etc/fl-gold/bin/fl-gold-firstboot.sh"
+mode = "0755"
+data = """__FIRSTBOOT_SCRIPT__
+"""

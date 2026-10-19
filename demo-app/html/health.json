@@ -1,0 +1,8 @@
+{
+  "status": "ok",
+  "app": "fedora-lane-demo-boutique",
+  "tier": "web",
+  "runtime": "podman-httpd",
+  "port": 35443,
+  "note": "Dummy PoC app — no real orders or payments"
+}

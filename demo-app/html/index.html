@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fedora Lane — Boutique Demo</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">Fedora Lane</div>
+    <nav>
+      <a href="#catalog">Catalog</a>
+      <a href="#about">About</a>
+      <a href="health.json">Health</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1>Boutique e-commerce demo</h1>
+      <p>
+        Dummy storefront hosted on the RHEL <strong>gold image</strong> —
+        httpd container on port <strong>35443</strong>.
+      </p>
+      <p class="meta" id="host-meta">Loading host info…</p>
+    </section>
+
+    <section id="catalog" class="catalog">
+      <h2>Featured styles</h2>
+      <div id="products" class="grid" aria-live="polite">Loading catalog…</div>
+    </section>
+
+    <section id="about" class="about">
+      <h2>How this is hosted</h2>
+      <ul>
+        <li>Gold VM baseline: Expansion Pack RHEL (SSH 2222, SELinux, fladmins)</li>
+        <li>Runtime: Podman httpd container bound to <code>35443</code></li>
+        <li>App files: <code>/opt/fl/httpd-gold/html</code> (volume-mounted; update without new AMI)</li>
+        <li>Deploy: <code>solution/demo-app/deploy-to-vm.sh</code></li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <span>Fedora Lane PoC · Server/Cloud OS Expansion Pack</span>
+    <span id="build-stamp">demo-app</span>
+  </footer>
+  <script src="app.js"></script>
+</body>
+</html>

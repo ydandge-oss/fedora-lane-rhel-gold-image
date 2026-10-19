@@ -1,0 +1,30 @@
+{
+  "store": "Fedora Lane Boutique",
+  "currency": "USD",
+  "items": [
+    {
+      "id": "fl-001",
+      "name": "Cascade Wool Coat",
+      "blurb": "Structured outerwear for city boutiques.",
+      "price": "$248"
+    },
+    {
+      "id": "fl-002",
+      "name": "Lane Silk Scarf",
+      "blurb": "Limited drop — demo SKU for PoC catalog API.",
+      "price": "$64"
+    },
+    {
+      "id": "fl-003",
+      "name": "Atelier Sneaker",
+      "blurb": "Everyday style sample for the gold-image web tier.",
+      "price": "$132"
+    },
+    {
+      "id": "fl-004",
+      "name": "Evening Clutch",
+      "blurb": "Accessory line placeholder — not a real order system.",
+      "price": "$89"
+    }
+  ]
+}

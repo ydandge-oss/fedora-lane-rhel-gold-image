@@ -1,0 +1,115 @@
+:root {
+  --ink: #1a1a1a;
+  --paper: #f7f4ef;
+  --accent: #8b1e1e;
+  --line: #d9d2c5;
+  --muted: #5c574e;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  color: var(--ink);
+  background:
+    radial-gradient(ellipse at top, #fff 0%, var(--paper) 55%, #ebe4d8 100%);
+  min-height: 100vh;
+}
+
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 2rem;
+  border-bottom: 1px solid var(--line);
+  background: rgba(247, 244, 239, 0.92);
+  backdrop-filter: blur(6px);
+  position: sticky;
+  top: 0;
+}
+.brand {
+  font-size: 1.35rem;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+nav a {
+  color: var(--muted);
+  text-decoration: none;
+  margin-left: 1.25rem;
+  font-size: 0.95rem;
+}
+nav a:hover { color: var(--accent); }
+
+main { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+.hero h1 {
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  margin: 0 0 0.75rem;
+  line-height: 1.15;
+}
+.hero p { color: var(--muted); max-width: 38rem; line-height: 1.5; }
+.meta {
+  display: inline-block;
+  margin-top: 0.5rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--line);
+  background: #fff;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+  color: var(--ink);
+}
+
+.catalog { margin-top: 2.5rem; }
+.catalog h2, .about h2 { font-size: 1.25rem; margin-bottom: 1rem; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+}
+.card {
+  background: #fff;
+  border: 1px solid var(--line);
+  padding: 1.1rem;
+  min-height: 9rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+.card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+}
+.card h3 { margin: 0 0 0.4rem; font-size: 1.05rem; }
+.card p { margin: 0; color: var(--muted); font-size: 0.92rem; }
+.price {
+  margin-top: 0.9rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.about {
+  margin-top: 2.5rem;
+  padding: 1.25rem 1.4rem;
+  border-top: 1px solid var(--line);
+}
+.about ul { padding-left: 1.2rem; color: var(--muted); line-height: 1.6; }
+.about code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85em;
+  background: #fff;
+  border: 1px solid var(--line);
+  padding: 0.05rem 0.3rem;
+}
+
+footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 2rem 1.5rem;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.85rem;
+}
