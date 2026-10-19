@@ -7,11 +7,12 @@ It is the **source of truth** in Git — not a running VM you hand-edit.
 
 | File | Role |
 |---|---|
-| [`fedora-lane-gold.blueprint.toml`](./fedora-lane-gold.blueprint.toml) *(link → image-builder)* | Editable recipe (partitions, users, firewall, packages) |
-| [`fedora-lane-gold.toml`](./fedora-lane-gold.toml) *(link → image-builder)* | Compose-ready copy (blueprint + embedded firstboot script) |
+| [`fedora-lane-gold.blueprint.toml`](./fedora-lane-gold.blueprint.toml) | Editable recipe (partitions, users, firewall, packages) |
+| [`fedora-lane-gold.toml`](./fedora-lane-gold.toml) | **Compose-ready TOML used to build the gold AMI/VHD** (blueprint + firstboot) |
 | [`../image-builder/files/fl-gold-firstboot.sh`](../image-builder/files/fl-gold-firstboot.sh) | First-boot script baked into the image |
 
-Canonical location: [`../image-builder/`](../image-builder/). The files under `docs/` are the same content (symlinks) so reviewers can open them from the docs tree on GitHub.
+Same files also live under [`../image-builder/`](../image-builder/) for compose scripts.  
+**Keep them in sync:** edit `image-builder/fedora-lane-gold.blueprint.toml` → run `image-builder/generate-blueprint.sh` → copy both `.toml` files into `docs/` (or re-copy before commit).
 
 ---
 

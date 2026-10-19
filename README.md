@@ -37,7 +37,8 @@ image-builder/
   README.md · 08-rhel10-rebuild.md · 12-… · 13-…
 docs/
   blueprint-explained.md           ← what the TOML blueprint is
-  fedora-lane-gold*.toml           ← links to image-builder blueprints
+  fedora-lane-gold.blueprint.toml  ← editable blueprint (in git)
+  fedora-lane-gold.toml            ← compose-ready TOML used for gold AMI (in git)
   solution-overview.md
   08-verify-customizations.md
   aws-cli-and-console.md           ← AWS without project scripts
