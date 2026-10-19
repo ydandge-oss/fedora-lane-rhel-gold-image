@@ -2,8 +2,8 @@
 # RHEL Image Builder blueprint (local compose on a RHEL VM)
 # Doc: https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/composing_a_customized_rhel_system_image/image-builder-description
 #
-# Generate compose-ready fl-rhel-gold.toml:
-#   ./scripts/generate-blueprint.sh
+# Generate compose-ready fedora-lane-gold.toml:
+#   ./generate-blueprint.sh
 #
 # BEFORE COMPOSE: replace SSH public keys; optional password hashes for sudo demo.
 

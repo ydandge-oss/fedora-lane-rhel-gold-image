@@ -8,6 +8,9 @@ Fedora Lane runs ~1,600 servers with mixed Linux distributions. Ad-hoc change is
 
 One **local RHEL Image Builder** blueprint in Git → compose **AMI** (AWS) and **VHD** (Azure) → launch identical web VMs.
 
+**What is the blueprint?** See [blueprint-explained.md](./blueprint-explained.md).  
+**TOML files:** [fedora-lane-gold.blueprint.toml](./fedora-lane-gold.blueprint.toml) · [fedora-lane-gold.toml](./fedora-lane-gold.toml)
+
 ```text
 TOML blueprint (Git)
     → Local Image Builder (RHEL 10 host)

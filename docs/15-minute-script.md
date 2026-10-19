@@ -3,7 +3,7 @@
 **Deck:** [`Fedora-Lane-Expansion-Pack-Technical-Solution.pptx`](./Fedora-Lane-Expansion-Pack-Technical-Solution.pptx) (14 slides)  
 **Audience:** Casey Novak / Alex Lee (RHSH practice or customer)  
 **Screen:** Google Slides + terminal with one live gold PoC VM (AWS or Azure)  
-**Commands cheat sheet:** [`demo-commands-gold-image.md`](./demo-commands-gold-image.md)
+**Blueprint (open on screen):** [`fedora-lane-gold.blueprint.toml`](./fedora-lane-gold.blueprint.toml) · explained in [`blueprint-explained.md`](./blueprint-explained.md)
 
 Replace `[Name]` with your name. Speak naturally; timings are targets.
 
@@ -78,9 +78,28 @@ Let’s walk the solution.”
 - **httpd as a container** on port **35443**  
 - A working deployment we can prove live — SSH **2222**, curl **35443**
 
-I’ll show the architecture next.”
+Before architecture — what is that blueprint?”
 
-*(Optional 10s: flash `solution/image-builder/fl-rhel-gold.toml` in the IDE.)*
+---
+
+### What is the blueprint? (say this on slide 5 or 6 · ~45–60 sec)
+
+*(Open `docs/fedora-lane-gold.blueprint.toml` or `image-builder/fedora-lane-gold.blueprint.toml` on screen.)*
+
+“The **blueprint** is a **TOML recipe file**. It is **not** a running server we hand-configure.
+
+It tells Image Builder: which RHEL 10 version, which packages, how to partition the disk, who the admins are, which ports the firewall opens, and how SSH is locked down.
+
+In our file you can see:
+
+- `distro = rhel-10.x` — exact Image Builder distro id  
+- Separate mounts for `/var/log`, `/home`, `/tmp`, `/var/tmp` — each under **5 GiB**  
+- Group **fladmins**, users **fladmin1** / **fladmin2**, with SSH keys  
+- Firewall ports **2222** and **35443**  
+- SSH drop-in: port 2222, no root, no password login  
+- A **firstboot** script that finishes SELinux, `/tmp` noexec, and starts the **httpd container**
+
+So when we say ‘source of truth in Git,’ we mean **this file**. Change the blueprint → compose a **new** gold image → launch new VMs. We do not snowflake servers.”
 
 ---
 
@@ -90,9 +109,9 @@ Point at the flow left to right:
 
 “This is the factory:
 
-1. **TOML** — blueprint with `distro=rhel-10.x` — source of truth in Git  
-2. **Local Image Builder** — on a subscribed RHEL 10 host  
-3. **Gold disk `.raw`** — hardened RHEL disk file  
+1. **TOML blueprint** — the recipe we just opened — source of truth in Git  
+2. **Local Image Builder** — on a subscribed RHEL 10 host — reads that TOML  
+3. **Gold disk `.raw`** — hardened RHEL disk file produced by the compose  
 4. **AWS AMI** — and the same recipe gives an **Azure VHD**  
 5. **Web nodes** — identical launches from that catalog image  
 
@@ -114,7 +133,7 @@ That’s the Expansion Pack baseline, baked in.”
 
 “Here’s what we actually run — you don’t need to watch a full hour-long compose live.
 
-**1 — Blueprint in Git** — `fl-rhel-gold.toml` — partitions under 5 GiB for `/var/log`, `/home`, `/tmp`, `/var/tmp`, users, firewall.
+**1 — Blueprint in Git** — `fedora-lane-gold.blueprint.toml` (then `generate-blueprint.sh` → compose-ready `.toml`). That is the recipe: partitions under 5 GiB for `/var/log`, `/home`, `/tmp`, `/var/tmp`, fladmins, firewall 2222/35443.”
 
 **2 — Builder + RHSM** — Image Builder needs `sudo rhc connect` on the builder.
 

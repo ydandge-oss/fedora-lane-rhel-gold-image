@@ -20,6 +20,7 @@ A **repeatable RHEL 10 gold image** defined in Image Builder TOML, published as 
 | **Container skills gap** | **httpd** in Podman on port **35443** |
 
 Full narrative: [docs/solution-overview.md](docs/solution-overview.md)  
+**What is the blueprint?** [docs/blueprint-explained.md](docs/blueprint-explained.md) · TOML: [docs/fedora-lane-gold.blueprint.toml](docs/fedora-lane-gold.blueprint.toml)  
 Official Red Hat docs: [docs/redhat-documentation.md](docs/redhat-documentation.md)
 
 ---
@@ -35,6 +36,8 @@ image-builder/
   compose.sh / install-image-builder.sh
   README.md · 08-rhel10-rebuild.md · 12-… · 13-…
 docs/
+  blueprint-explained.md           ← what the TOML blueprint is
+  fedora-lane-gold*.toml           ← links to image-builder blueprints
   solution-overview.md
   08-verify-customizations.md
   aws-cli-and-console.md           ← AWS without project scripts
