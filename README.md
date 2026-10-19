@@ -136,18 +136,141 @@ Or: `./aws/reupload-ami-from-builder.sh <BUILDER_IP>`
 
 Details: [image-builder/13-image-builder-aws-examples.md](image-builder/13-image-builder-aws-examples.md) · [12-aws-access-s3-upload.md](image-builder/12-aws-access-s3-upload.md)
 
-### Publish to AWS + prove
+### Launch a VM from the gold AMI (AWS)
 
-1. Prefer Image Builder upload above, **or** S3 → import-snapshot → register-image → run-instances.  
-2. Security group: your IP on **2222** and **35443**.  
-3. Wait for firstboot / Podman, then:
+Gold VMs use **SSH port 2222** and **httpd port 35443** (not port 22).  
+PoC region: **us-east-2**.  
+AMI name: `fedora-lane-rhel10-gold` (also try `fl-rhel-gold` if that is what you registered).
+
+#### Option A — AWS CLI (one step at a time)
 
 ```bash
-ssh -i ~/.ssh/fl-gold-poc.pem -p 2222 fladmin1@<PUBLIC_IP>
+export AWS_REGION=us-east-2
+export AWS_DEFAULT_REGION=us-east-2
 ```
 
-Checks: [docs/08-verify-customizations.md](docs/08-verify-customizations.md)  
-Console / plain CLI: [docs/aws-cli-and-console.md](docs/aws-cli-and-console.md)
+**1. Find the gold AMI**
+
+```bash
+aws ec2 describe-images --owners self \
+  --filters Name=name,Values=fedora-lane-rhel10-gold Name=state,Values=available \
+  --output table
+```
+
+```bash
+AMI_ID=ami-xxxxxxxx
+echo $AMI_ID
+```
+
+**2. Default VPC + subnet**
+
+```bash
+aws ec2 describe-vpcs --filters Name=isDefault,Values=true --output table
+VPC_ID=vpc-xxxxxxxx
+
+aws ec2 describe-subnets --filters Name=vpc-id,Values=$VPC_ID --output table
+SUBNET_ID=subnet-xxxxxxxx
+```
+
+**3. Security group (ports 2222 + 35443)**
+
+```bash
+aws ec2 create-security-group \
+  --group-name fl-gold-sg \
+  --description "Fedora Lane gold SSH 2222 + httpd 35443" \
+  --vpc-id $VPC_ID \
+  --output table
+SG_ID=sg-xxxxxxxx
+
+MYIP=x.x.x.x/32
+aws ec2 authorize-security-group-ingress \
+  --group-id $SG_ID --protocol tcp --port 2222 --cidr $MYIP
+aws ec2 authorize-security-group-ingress \
+  --group-id $SG_ID --protocol tcp --port 35443 --cidr $MYIP
+```
+
+(Ignore errors if the group or rules already exist.)
+
+**4. Launch the instance**
+
+```bash
+KEY_NAME=fl-gold-poc
+
+aws ec2 run-instances \
+  --image-id $AMI_ID \
+  --instance-type t3.medium \
+  --key-name $KEY_NAME \
+  --security-group-ids $SG_ID \
+  --subnet-id $SUBNET_ID \
+  --associate-public-ip-address \
+  --output table
+
+INSTANCE_ID=i-xxxxxxxx
+aws ec2 wait instance-running --instance-ids $INSTANCE_ID
+```
+
+**5. Get public IP**
+
+```bash
+aws ec2 describe-instances --instance-ids $INSTANCE_ID --output table
+PUBLIC_IP=x.x.x.x
+```
+
+**6. Connect and prove (wait ~4–5 minutes for firstboot / Podman)**
+
+```bash
+ssh -i ~/.ssh/fl-gold-poc.pem -p 2222 fladmin1@$PUBLIC_IP
+curl -s http://$PUBLIC_IP:35443/
+```
+
+On the VM:
+
+```bash
+getenforce
+findmnt /var/log /home /tmp /var/tmp
+ss -tln | grep -E '2222|35443'
+curl -s http://127.0.0.1:35443/ | head
+exit
+```
+
+Full checklist: [docs/08-verify-customizations.md](docs/08-verify-customizations.md)
+
+**Optional — User data at launch** (so httpd starts reliably, especially for Console launches):
+
+```yaml
+#cloud-config
+runcmd:
+  - [rm, -f, /var/lib/fl-gold-firstboot-done]
+  - [/bin/bash, /etc/fl-gold/bin/fl-gold-firstboot.sh]
+```
+
+#### Option B — AWS Console
+
+1. Open AWS Console → region **US East (Ohio) / us-east-2**.  
+2. **EC2 → AMIs → Owned by me** → select **fedora-lane-rhel10-gold** (or `fl-rhel-gold`) → **Launch instance from AMI**.  
+3. Instance type: **t3.medium**.  
+4. Key pair: any existing key (login still uses the key baked into the AMI for `fladmin1`, e.g. `~/.ssh/fl-gold-poc.pem`).  
+5. Network: enable **Auto-assign public IP**.  
+6. Security group: allow **TCP 2222** and **TCP 35443** from **My IP** (not port 22).  
+7. Storage: at least **40 GiB**.  
+8. **Advanced details → User data** — paste the YAML above (leave “already base64 encoded” unchecked).  
+9. **Launch** → wait **4–5 minutes**.  
+10. Connect:
+
+```bash
+ssh -i ~/.ssh/fl-gold-poc.pem -p 2222 fladmin1@<Public-IP>
+curl -s http://<Public-IP>:35443/
+```
+
+#### Option C — project script
+
+```bash
+cd aws
+./launch-gold-ami.sh
+./verify-remote.sh
+```
+
+More detail: [docs/aws-cli-and-console.md](docs/aws-cli-and-console.md)
 
 ### Azure (same TOML → VHD)
 
