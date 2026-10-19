@@ -21,6 +21,7 @@ A **repeatable RHEL 10 gold image** defined in Image Builder TOML, published as 
 
 Full narrative: [docs/solution-overview.md](docs/solution-overview.md)  
 **What is the blueprint?** [docs/blueprint-explained.md](docs/blueprint-explained.md) · TOML: [docs/fedora-lane-gold.blueprint.toml](docs/fedora-lane-gold.blueprint.toml)  
+**Full Google Doc guide (challenges → TOML → AMI/VHD → launch → waves):** [docs/Fedora-Lane-Gold-Image-Full-Guide.md](docs/Fedora-Lane-Gold-Image-Full-Guide.md)  
 Official Red Hat docs: [docs/redhat-documentation.md](docs/redhat-documentation.md)
 
 ---
@@ -44,6 +45,7 @@ docs/
   aws-cli-and-console.md           ← AWS without project scripts
   azure-cli-and-console.md         ← Azure without project scripts
   15-minute-script.md              ← presentation teleprompter
+  Fedora-Lane-Gold-Image-Full-Guide.md ← paste into Google Docs (full story)
 aws/                               ← RHDP AWS Blank OPEN automation
 azure/                             ← RHDP Azure Blank OPEN automation
 demo-app/                          ← dummy boutique site (deploy without new AMI)
