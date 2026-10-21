@@ -67,7 +67,7 @@ scripts/                           ← notes / optional helpers
 - [x] `fladmins` + `fladmin1` / `fladmin2`
 - [x] Firewall: only 2222 + 35443
 - [x] Survives reboot
-- [ ] Stretch: OpenSCAP CIS (not done yet)
+- [x] Stretch: OpenSCAP CIS (Image Builder `customizations.openscap` + firstboot report)
 
 SSH public keys for `fladmin1` / `fladmin2` are in the blueprint — replace with yours before compose.
 
@@ -241,26 +241,26 @@ exit
 
 Full checklist: [docs/08-verify-customizations.md](docs/08-verify-customizations.md)
 
-**Optional — User data at launch** (so httpd starts reliably, especially for Console launches):
+**User data:** not required on **v2** AMIs (`fedora-lane-rhel10-gold-v2`) — firstboot is per-instance via systemd.  
+(Older AMIs may still need the YAML below.)
 
 ```yaml
 #cloud-config
 runcmd:
-  - [rm, -f, /var/lib/fl-gold-firstboot-done]
   - [/bin/bash, /etc/fl-gold/bin/fl-gold-firstboot.sh]
 ```
 
 #### Option B — AWS Console
 
 1. Open AWS Console → region **US East (Ohio) / us-east-2**.  
-2. **EC2 → AMIs → Owned by me** → select **fedora-lane-rhel10-gold** (or `fl-rhel-gold`) → **Launch instance from AMI**.  
+2. **EC2 → AMIs → Owned by me** → select **fedora-lane-rhel10-gold-v2** (or latest gold) → **Launch instance from AMI**.  
 3. Instance type: **t3.medium**.  
 4. Key pair: any existing key (login still uses the key baked into the AMI for `fladmin1`, e.g. `~/.ssh/fl-gold-poc.pem`).  
 5. Network: enable **Auto-assign public IP**.  
 6. Security group: allow **TCP 2222** and **TCP 35443** from **My IP** (not port 22).  
 7. Storage: at least **40 GiB**.  
-8. **Advanced details → User data** — paste the YAML above (leave “already base64 encoded” unchecked).  
-9. **Launch** → wait **4–5 minutes**.  
+8. User data: leave empty on v2 (optional fallback YAML above).  
+9. **Launch** → wait **4–5 minutes** for firstboot / Podman.  
 10. Connect:
 
 ```bash

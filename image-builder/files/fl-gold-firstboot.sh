@@ -1,12 +1,46 @@
 #!/bin/bash
-# Fedora Lane - firstboot hardening for Image Builder gold image
-# Baked into the image via blueprint [[customizations.files]]
+# Fedora Lane - firstboot for Image Builder gold image
+# Runs once per cloud instance (marker keyed by instance-id) so a baked AMI
+# never skips httpd on new launches — no User data required.
 set -uo pipefail
 
-MARKER=/var/lib/fl-gold-firstboot-done
+# --- per-instance marker (fixes "need User data" on console launches) ---
+fl_instance_id() {
+  # AWS IMDSv2 then IMDSv1; Azure IMDS; fallback unique for non-cloud boots
+  local tok iid
+  tok=$(curl -sf --max-time 2 -X PUT "http://169.254.169.254/latest/api/token" \
+    -H "X-aws-ec2-metadata-token-ttl-seconds: 60" 2>/dev/null || true)
+  if [[ -n "$tok" ]]; then
+    iid=$(curl -sf --max-time 2 -H "X-aws-ec2-metadata-token: $tok" \
+      http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null || true)
+    [[ -n "$iid" ]] && { echo "$iid"; return; }
+  fi
+  iid=$(curl -sf --max-time 2 http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null || true)
+  [[ -n "$iid" ]] && { echo "$iid"; return; }
+  iid=$(curl -sf --max-time 2 -H Metadata:true \
+    "http://169.254.169.254/metadata/instance/compute/vmId?api-version=2021-02-01&format=text" 2>/dev/null || true)
+  [[ -n "$iid" ]] && { echo "$iid"; return; }
+  echo "local-$(hostname)-$(stat -c %i /etc/machine-id 2>/dev/null || echo 0)"
+}
+
+IID=$(fl_instance_id)
+MARKER_DIR=/var/lib/fl-gold
+mkdir -p "$MARKER_DIR"
+MARKER="$MARKER_DIR/firstboot-done-$IID"
+
 if [[ -f "$MARKER" ]]; then
-  exit 0
+  # Re-ensure httpd if marker exists but port is down (partial prior run)
+  if ss -ltn 2>/dev/null | grep -q ':35443'; then
+    exit 0
+  fi
 fi
+
+# Wait for network (Podman pull / IMDS)
+for _ in 1 2 3 4 5 6 7 8 9 10; do
+  ping -c1 -W1 8.8.8.8 >/dev/null 2>&1 && break
+  ping -c1 -W1 1.1.1.1 >/dev/null 2>&1 && break
+  sleep 3
+done
 
 # SELinux enforcing
 setenforce 1 || true
@@ -18,7 +52,7 @@ if command -v semanage >/dev/null 2>&1; then
   semanage port -a -t http_port_t -p tcp 35443 2>/dev/null || semanage port -m -t http_port_t -p tcp 35443 || true
 fi
 
-# /tmp and /var/tmp noexec (blueprint minsize cannot set mount options)
+# /tmp and /var/tmp noexec
 if findmnt -n /tmp >/dev/null 2>&1; then
   mount -o remount,noexec,nodev,nosuid /tmp || true
   if grep -qE '[[:space:]]/tmp[[:space:]]' /etc/fstab; then
@@ -40,8 +74,26 @@ firewall-cmd --permanent --add-port=35443/tcp || true
 firewall-cmd --reload || true
 systemctl enable --now sshd || true
 
+# OpenSCAP: write a quick compliance snapshot if tools are present (CIS baked at compose too)
+if command -v oscap >/dev/null 2>&1; then
+  mkdir -p /var/log/fl-gold
+  DS=""
+  for f in /usr/share/xml/scap/ssg/content/ssg-rhel10-ds.xml \
+           /usr/share/xml/scap/ssg/content/ssg-rhel9-ds.xml; do
+    [[ -f "$f" ]] && DS="$f" && break
+  done
+  if [[ -n "$DS" ]]; then
+    # Scan only (remediation is applied at Image Builder compose via customizations.openscap)
+    oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_cis \
+      --results /var/log/fl-gold/openscap-cis-results.xml \
+      --report /var/log/fl-gold/openscap-cis-report.html \
+      "$DS" >/var/log/fl-gold/openscap-cis-eval.log 2>&1 || true
+    echo "OpenSCAP CIS report: /var/log/fl-gold/openscap-cis-report.html" \
+      > /etc/fl-gold/OPENSCAP.txt || true
+  fi
+fi
+
 # httpd in container on 35443 + Fedora Lane dummy boutique app
-# App source of truth in Git: demo-app/html (refresh with deploy-to-vm.sh)
 mkdir -p /opt/fl/httpd-gold/html/api
 chmod 0755 /opt /opt/fl /opt/fl/httpd-gold /opt/fl/httpd-gold/html /opt/fl/httpd-gold/html/api 2>/dev/null || true
 umask 022
@@ -79,6 +131,7 @@ tee /opt/fl/httpd-gold/html/index.html >/dev/null <<'HTML'
         <li>Gold VM baseline: Expansion Pack RHEL (SSH 2222, SELinux, fladmins)</li>
         <li>Runtime: Podman httpd container on <code>35443</code></li>
         <li>App files: <code>/opt/fl/httpd-gold/html</code> — update without a new AMI</li>
+        <li>OpenSCAP CIS: applied at image compose; report under <code>/var/log/fl-gold/</code></li>
       </ul>
     </section>
   </main>
@@ -121,7 +174,6 @@ FROM registry.access.redhat.com/ubi9/httpd-24
 COPY html/ /var/www/html/
 CF
 
-# Prefer registry image directly if local build is slow/unavailable
 if ! podman image exists localhost/fl-httpd-gold:latest; then
   if (cd /opt/fl/httpd-gold && podman build -t localhost/fl-httpd-gold:latest .); then
     :
@@ -149,6 +201,17 @@ if [[ -f /tmp/container-fl-httpd.service ]]; then
   systemctl enable --now fl-httpd.service || true
 fi
 
+# Only mark done when httpd is listening (or after retries)
+for _ in 1 2 3 4 5 6 7 8 9 10; do
+  if ss -ltn 2>/dev/null | grep -q ':35443'; then
+    touch "$MARKER"
+    echo "Fedora Lane gold firstboot complete (httpd up) iid=$IID"
+    exit 0
+  fi
+  sleep 6
+done
+
+# Still mark so we do not loop forever; operator can re-run script
 touch "$MARKER"
-echo "Fedora Lane gold firstboot complete"
+echo "Fedora Lane gold firstboot finished but :35443 not yet listening — check podman/journalctl iid=$IID"
 exit 0
