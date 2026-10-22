@@ -117,16 +117,6 @@ Needs IAM role **`vmimport`** (see `aws/setup-vmimport-role.sh`).
 
 **Easiest (Mac → scripts):**
 
-```bash
-cd aws
-cp -n env.example env.local    # fill AWS keys — never commit
-./setup-vmimport-role.sh
-./compose-on-builder.sh
-# on builder: sudo rhc connect
-# ./continue-compose-on-builder.sh <BUILDER_IP>
-./launch-gold-ami.sh
-./verify-remote.sh
-```
 
 ### Upload an existing `.raw`
 
@@ -139,6 +129,18 @@ sudo image-builder upload ./your-image.raw \
 ```
 
 Or: `./aws/reupload-ami-from-builder.sh <BUILDER_IP>`
+
+```bash
+cd aws
+cp -n env.example env.local    # fill AWS keys — never commit
+./setup-vmimport-role.sh
+./compose-on-builder.sh
+# on builder: sudo rhc connect
+# ./continue-compose-on-builder.sh <BUILDER_IP>
+./launch-gold-ami.sh
+./verify-remote.sh
+```
+
 
 Details: [image-builder/13-image-builder-aws-examples.md](image-builder/13-image-builder-aws-examples.md) · [12-aws-access-s3-upload.md](image-builder/12-aws-access-s3-upload.md)
 
